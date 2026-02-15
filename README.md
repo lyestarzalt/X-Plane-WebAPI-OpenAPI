@@ -58,28 +58,30 @@ curl http://localhost:8086/api/capabilities
 # List first 5 datarefs
 curl 'http://localhost:8086/api/v3/datarefs?limit=5'
 
-# Find the pilot barometer setting dataref (writable)
-curl 'http://localhost:8086/api/v3/datarefs?filter%5Bname%5D=sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot'
-
-# Read the barometer value (use the ID from above)
-curl http://localhost:8086/api/v3/datarefs/40003647712/value
-
-# Set the barometer to standard pressure (29.92 inHg) — you'll see it move in the cockpit!
-curl -X PATCH http://localhost:8086/api/v3/datarefs/40003647712/value \
-  -H 'Content-Type: application/json' \
-  -d '{"data": 29.92}'
-
 # Get dataref count
 curl http://localhost:8086/api/v3/datarefs/count
+
+# Find the simulator zulu time dataref (writable)
+curl 'http://localhost:8086/api/v3/datarefs?filter%5Bname%5D=sim/time/zulu_time_sec'
+
+# Read the current zulu time in seconds since midnight UTC (use the ID from above)
+curl http://localhost:8086/api/v3/datarefs/40003472032/value
+
+# Set zulu time to noon (43200 seconds) — the sky and lighting change instantly!
+curl -X PATCH http://localhost:8086/api/v3/datarefs/40003472032/value \
+  -H 'Content-Type: application/json' \
+  -d '{"data": 43200}'
 
 # List commands
 curl 'http://localhost:8086/api/v3/commands?limit=5'
 
-# Nudge the barometer up (press and release)
-curl -X POST http://localhost:8086/api/v3/command/2114/activate \
+# Toggle the landing lights on/off (press and release)
+curl -X POST http://localhost:8086/api/v3/command/818/activate \
   -H 'Content-Type: application/json' \
   -d '{"duration": 0}'
 ```
+
+> **Note:** Dataref IDs are assigned at runtime and may differ between sessions. Always look up the ID by name first.
 
 ### WebSocket (using websocat)
 
@@ -87,8 +89,8 @@ curl -X POST http://localhost:8086/api/v3/command/2114/activate \
 # Connect
 websocat ws://localhost:8086/api/v3
 
-# Subscribe to the barometer dataref (type this after connecting)
-{"req_id": 1, "type": "dataref_subscribe_values", "params": {"datarefs": [{"id": 40003647712}]}}
+# Subscribe to zulu time updates at 10Hz (type this after connecting)
+{"req_id": 1, "type": "dataref_subscribe_values", "params": {"datarefs": [{"id": 40003472032}]}}
 ```
 
 ### Import into Postman

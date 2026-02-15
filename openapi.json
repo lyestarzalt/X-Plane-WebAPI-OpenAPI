@@ -86,7 +86,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "sim/flightmodel/position/latitude"
+            "example": "sim/time/zulu_time_sec"
           },
           {
             "name": "start",
@@ -136,9 +136,9 @@
                 "example": {
                   "data": [
                     {
-                      "id": 40003647712,
+                      "id": 40003472032,
                       "is_writable": true,
-                      "name": "sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot",
+                      "name": "sim/time/zulu_time_sec",
                       "value_type": "float"
                     }
                   ]
@@ -279,7 +279,7 @@
                 "examples": {
                   "scalar": {
                     "summary": "Scalar value (float/double/int)",
-                    "value": { "data": 29.92 }
+                    "value": { "data": 43200.0 }
                   },
                   "array": {
                     "summary": "Array value (float_array/int_array)",
@@ -382,7 +382,7 @@
               "examples": {
                 "scalar": {
                   "summary": "Set a scalar value",
-                  "value": { "data": 29.92 }
+                  "value": { "data": 43200 }
                 },
                 "array": {
                   "summary": "Set an entire array",
@@ -536,9 +536,9 @@
                 "example": {
                   "data": [
                     {
-                      "description": "Quit X-Plane.",
-                      "id": 1,
-                      "name": "sim/operation/quit"
+                      "description": "Landing lights toggle.",
+                      "id": 818,
+                      "name": "sim/lights/landing_lights_toggle"
                     }
                   ]
                 }
@@ -972,12 +972,12 @@
             "type": "integer",
             "format": "int64",
             "description": "Numeric identifier of the dataref for the current simulator session",
-            "example": 40003647712
+            "example": 40003472032
           },
           "name": {
             "type": "string",
             "description": "Fully qualified name of the dataref",
-            "example": "sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot"
+            "example": "sim/time/zulu_time_sec"
           },
           "value_type": {
             "type": "string",
@@ -999,17 +999,17 @@
           "id": {
             "type": "integer",
             "description": "Numeric identifier of the command for the current simulator session",
-            "example": 1
+            "example": 818
           },
           "name": {
             "type": "string",
             "description": "Fully qualified name of the command",
-            "example": "sim/operation/quit"
+            "example": "sim/lights/landing_lights_toggle"
           },
           "description": {
             "type": "string",
             "description": "Human-readable description of what the command does",
-            "example": "Quit X-Plane."
+            "example": "Landing lights toggle."
           }
         }
       },
