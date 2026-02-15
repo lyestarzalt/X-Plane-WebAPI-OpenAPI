@@ -1,0 +1,1002 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "X-Plane Local Web API",
+    "description": "Starting with version 12.1.1, X-Plane includes a built-in web server that provides a REST and WebSocket API for communicating with a running simulator instance.\n\nThis spec covers the **REST API** endpoints. For WebSocket message types, see the companion AsyncAPI spec.\n\nThe web server listens on `localhost:8086` by default. You can change the port with `--web_server_port=XXXX` when launching X-Plane. To disable the API entirely, set the network security policy to \"Disable Incoming Traffic\" in Settings > Network.\n\n**Note:** The `/api/capabilities` endpoint is unversioned (not under `/api/v3/`). All other endpoints are versioned under `/api/v3/`.\n\nFor more information, see the [official documentation](https://developer.x-plane.com/article/x-plane-local-web-api/).",
+    "version": "3.0.0",
+    "contact": {
+      "name": "X-Plane Developer",
+      "url": "https://developer.x-plane.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8086/api/v3",
+      "description": "X-Plane local web server (v3, default port)"
+    },
+    {
+      "url": "http://localhost:8086/api",
+      "description": "X-Plane local web server (unversioned, for /capabilities only)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Capabilities",
+      "description": "API version and X-Plane version information"
+    },
+    {
+      "name": "Datarefs",
+      "description": "Read and write simulator datarefs"
+    },
+    {
+      "name": "Commands",
+      "description": "List and activate simulator commands"
+    },
+    {
+      "name": "Flight",
+      "description": "Initialize or update a flight"
+    }
+  ],
+  "paths": {
+    "/capabilities": {
+      "get": {
+        "tags": ["Capabilities"],
+        "summary": "Get API capabilities",
+        "description": "Returns the supported API versions and the running X-Plane version.\n\n**Note:** This endpoint is unversioned. Use the `/api/capabilities` server, not `/api/v3/capabilities`.",
+        "operationId": "getCapabilities",
+        "servers": [
+          {
+            "url": "http://localhost:8086/api",
+            "description": "Unversioned endpoint"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with API and X-Plane version info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiCapabilities"
+                },
+                "example": {
+                  "api": {
+                    "versions": ["v1", "v2", "v3"]
+                  },
+                  "x-plane": {
+                    "version": "12.4.0"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/datarefs": {
+      "get": {
+        "tags": ["Datarefs"],
+        "summary": "List datarefs",
+        "description": "Returns all registered datarefs in X-Plane at the moment of the request (both built-in and created by third parties). Supports filtering, pagination, and field selection.",
+        "operationId": "listDatarefs",
+        "parameters": [
+          {
+            "name": "filter[name]",
+            "in": "query",
+            "description": "Filter by exact dataref name. Repeatable — multiple values are joined with OR logic.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "sim/flightmodel/position/latitude"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Index from where to start (inclusive, for pagination).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (for pagination).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Comma-separated list of fields to return per record. Available fields: `id`, `name`, `value_type`, `is_writable`. Use `all` (default) to return all fields.",
+            "schema": {
+              "type": "string",
+              "default": "all"
+            },
+            "example": "id,name,value_type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with array of datarefs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Dataref"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": 40003062912,
+                      "is_writable": false,
+                      "name": "sim/flightmodel/position/latitude",
+                      "value_type": "double"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "start_out_of_range": {
+                    "value": {
+                      "error_code": "start_out_of_range",
+                      "error_message": "Start out of range"
+                    }
+                  },
+                  "limit_out_of_range": {
+                    "value": {
+                      "error_code": "limit_out_of_range",
+                      "error_message": "Limit out of range"
+                    }
+                  },
+                  "invalid_field": {
+                    "value": {
+                      "error_code": "invalid_field",
+                      "error_message": "Field foo does not exist"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Dataref name not found (when using filter[name])",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error_code": "invalid_dataref_name",
+                  "error_message": "Dataref foo doesn't exist"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/datarefs/count": {
+      "get": {
+        "tags": ["Datarefs"],
+        "summary": "Get dataref count",
+        "description": "Returns the number of registered datarefs in X-Plane at the moment (both built-in and created by third parties).",
+        "operationId": "getDatarefCount",
+        "responses": {
+          "200": {
+            "description": "Successful response with the dataref count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "integer",
+                      "description": "Total number of registered datarefs"
+                    }
+                  }
+                },
+                "example": {
+                  "data": 7396
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/datarefs/{id}/value": {
+      "get": {
+        "tags": ["Datarefs"],
+        "summary": "Get dataref value",
+        "description": "Returns the current value of a dataref. For array datarefs, returns the full array or a single element if `index` is specified.",
+        "operationId": "getDatarefValue",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Numeric ID of the dataref (obtained from List datarefs). This ID is stable within an X-Plane session but may change between sessions.",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "index",
+            "in": "query",
+            "description": "Index to get on array datarefs.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with the dataref value. The value type depends on the dataref: a number for scalar datarefs, an array for array datarefs, or a base64 string for data datarefs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "description": "The dataref value. Type depends on the dataref: number, array of numbers, or base64 string.",
+                      "oneOf": [
+                        { "type": "number" },
+                        {
+                          "type": "array",
+                          "items": { "type": "number" }
+                        },
+                        { "type": "string" }
+                      ]
+                    }
+                  }
+                },
+                "examples": {
+                  "scalar": {
+                    "summary": "Scalar value (float/double/int)",
+                    "value": { "data": 36.703 }
+                  },
+                  "array": {
+                    "summary": "Array value (float_array/int_array)",
+                    "value": { "data": [0.0, 0.0, 0.0, 0.0] }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "index_out_of_range": {
+                    "value": {
+                      "error_code": "index_out_of_range",
+                      "error_message": "Index is out of range"
+                    }
+                  },
+                  "not_an_array": {
+                    "value": {
+                      "error_code": "not_an_array",
+                      "error_message": "An index was provided but the dataref is not an array"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Dataref not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error_code": "invalid_dataref_id",
+                  "error_message": "Dataref id 99999 doesn't exist"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Datarefs"],
+        "summary": "Set dataref value",
+        "description": "Set a dataref value. For array datarefs, you can set a specific index or the whole array at once (all values must be provided).",
+        "operationId": "setDatarefValue",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Numeric ID of the dataref to update",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "index",
+            "in": "query",
+            "description": "Index to set on array datarefs.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["data"],
+                "properties": {
+                  "data": {
+                    "description": "The value to set. A single number, an array of numbers, or a base64 encoded string.",
+                    "oneOf": [
+                      { "type": "number" },
+                      {
+                        "type": "array",
+                        "items": { "type": "number" }
+                      },
+                      { "type": "string" }
+                    ]
+                  }
+                }
+              },
+              "examples": {
+                "scalar": {
+                  "summary": "Set a scalar value",
+                  "value": { "data": 210 }
+                },
+                "array": {
+                  "summary": "Set an entire array",
+                  "value": { "data": [210, 220, 240] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Value set successfully (empty response)"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "index_out_of_range": {
+                    "value": {
+                      "error_code": "index_out_of_range",
+                      "error_message": "Dataref array index out of range"
+                    }
+                  },
+                  "not_an_array": {
+                    "value": {
+                      "error_code": "not_an_array",
+                      "error_message": "An index was provided but the dataref is not an array"
+                    }
+                  },
+                  "incompatible_data": {
+                    "value": {
+                      "error_code": "incompatible_data",
+                      "error_message": "Provided data is too much or not enough to set all elements of the dataref array"
+                    }
+                  },
+                  "invalid_body": {
+                    "value": {
+                      "error_code": "invalid_body",
+                      "error_message": "The request body is not valid JSON"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Dataref is read-only or incoming traffic is disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error_code": "dataref_is_readonly",
+                  "error_message": "Attempted to write to a read-only dataref"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dataref not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error_code": "invalid_dataref_id",
+                  "error_message": "Dataref id 99999 doesn't exist"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/commands": {
+      "get": {
+        "tags": ["Commands"],
+        "summary": "List commands",
+        "description": "Returns all registered commands in X-Plane at the moment (built-in and third party). Supports filtering, pagination, and field selection. Introduced in API v2 (X-Plane 12.1.4+).",
+        "operationId": "listCommands",
+        "parameters": [
+          {
+            "name": "filter[name]",
+            "in": "query",
+            "description": "Filter by exact command name. Repeatable — multiple values are joined with OR logic.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "sim/operation/pause"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Index from where to start (inclusive, for pagination).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (for pagination).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Comma-separated list of fields to return per record. Available fields: `id`, `name`, `description`. Use `all` (default) to return all fields.",
+            "schema": {
+              "type": "string",
+              "default": "all"
+            },
+            "example": "id,name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with array of commands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Command"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "description": "Quit X-Plane.",
+                      "id": 1,
+                      "name": "sim/operation/quit"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "start_out_of_range": {
+                    "value": {
+                      "error_code": "start_out_of_range",
+                      "error_message": "Start out of range"
+                    }
+                  },
+                  "limit_out_of_range": {
+                    "value": {
+                      "error_code": "limit_out_of_range",
+                      "error_message": "Limit out of range"
+                    }
+                  },
+                  "invalid_field": {
+                    "value": {
+                      "error_code": "invalid_field",
+                      "error_message": "Field foo does not exist"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Command name not found (when using filter[name])",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error_code": "invalid_command_name",
+                  "error_message": "Command foo doesn't exist"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/commands/count": {
+      "get": {
+        "tags": ["Commands"],
+        "summary": "Get command count",
+        "description": "Returns the number of registered commands in X-Plane at the moment (built-in and third party). Introduced in API v2 (X-Plane 12.1.4+).",
+        "operationId": "getCommandCount",
+        "responses": {
+          "200": {
+            "description": "Successful response with the command count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "integer",
+                      "description": "Total number of registered commands"
+                    }
+                  }
+                },
+                "example": {
+                  "data": 3171
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/command/{id}/activate": {
+      "post": {
+        "tags": ["Commands"],
+        "summary": "Activate a command",
+        "description": "Runs a command for a fixed duration. A zero duration triggers the command on and off immediately (like a button press). Maximum duration is 10 seconds.\n\nThis endpoint is intended for fire-and-forget commands (e.g., `sim/operation/pause`). For hardware integration or command up/down sequences, use the WebSocket interface instead.\n\nIntroduced in API v2 (X-Plane 12.1.4+).",
+        "operationId": "activateCommand",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Numeric ID of the command to activate",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["duration"],
+                "properties": {
+                  "duration": {
+                    "type": "number",
+                    "format": "float",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "description": "Time in seconds after which the command will be deactivated. Use 0 for an immediate press-and-release."
+                  }
+                }
+              },
+              "examples": {
+                "press_half_sec": {
+                  "summary": "Press for half a second",
+                  "value": { "duration": 0.5 }
+                },
+                "press_release": {
+                  "summary": "Immediate press and release",
+                  "value": { "duration": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Command activated successfully (empty response)"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_body": {
+                    "value": {
+                      "error_code": "invalid_body",
+                      "error_message": "The request body is not valid JSON"
+                    }
+                  },
+                  "duration_out_of_range": {
+                    "value": {
+                      "error_code": "duration_out_of_range",
+                      "error_message": "Duration is out of valid range."
+                    }
+                  },
+                  "duration_missing": {
+                    "value": {
+                      "error_code": "duration_missing",
+                      "error_message": "Missing duration parameter"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "Command not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error_code": "invalid_command_id",
+                  "error_message": "Command id 99999 doesn't exist"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/flight": {
+      "post": {
+        "tags": ["Flight"],
+        "summary": "Start a flight",
+        "description": "Starts a new flight with the specified configuration. Introduced in API v3 (X-Plane 12.4.0+).\n\nSee the [Flight Initialization API documentation](https://developer.x-plane.com/article/flight-initialization-api/) for the full JSON init structure.",
+        "operationId": "startFlight",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["data"],
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "description": "Flight initialization structure. See X-Plane Flight Initialization API docs for full schema.",
+                    "properties": {
+                      "ramp_start": {
+                        "type": "object",
+                        "description": "Starting position at an airport ramp",
+                        "properties": {
+                          "airport_id": {
+                            "type": "string",
+                            "description": "Airport ICAO code",
+                            "example": "KPDX"
+                          },
+                          "ramp": {
+                            "type": "string",
+                            "description": "Ramp/gate identifier",
+                            "example": "A1"
+                          }
+                        }
+                      },
+                      "aircraft": {
+                        "type": "object",
+                        "description": "Aircraft to load",
+                        "properties": {
+                          "path": {
+                            "type": "string",
+                            "description": "Relative path to the aircraft .acf file",
+                            "example": "Aircraft/Laminar Research/Boeing 737-800/b738.acf"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "data": {
+                  "ramp_start": {
+                    "airport_id": "KPDX",
+                    "ramp": "A1"
+                  },
+                  "aircraft": {
+                    "path": "Aircraft/Laminar Research/Boeing 737-800/b738.acf"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Flight started successfully (empty response)"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_body": {
+                    "value": {
+                      "error_code": "invalid_body",
+                      "error_message": "The request body is not valid JSON"
+                    }
+                  },
+                  "invalid_value": {
+                    "value": {
+                      "error_code": "invalid_value",
+                      "error_message": "The value provided for airport_id is not valid."
+                    }
+                  },
+                  "missing_aircraft": {
+                    "value": {
+                      "error_code": "missing_aircraft",
+                      "error_message": "Aircraft path doesn't exist"
+                    }
+                  },
+                  "missing_livery": {
+                    "value": {
+                      "error_code": "missing_livery",
+                      "error_message": "Livery name doesn't exist"
+                    }
+                  },
+                  "missing_scenery": {
+                    "value": {
+                      "error_code": "missing_scenery",
+                      "error_message": "All or some scenery for the requested conditions is missing"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Flight"],
+        "summary": "Update flight",
+        "description": "Updates the current flight configuration. You cannot change the start location or aircraft during an update. Introduced in API v3 (X-Plane 12.4.0+).\n\nSee the [Flight Initialization API documentation](https://developer.x-plane.com/article/flight-initialization-api/) for the full JSON structure.",
+        "operationId": "updateFlight",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["data"],
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "description": "Partial flight configuration update. See X-Plane Flight Initialization API docs for full schema."
+                  }
+                }
+              },
+              "example": {
+                "data": {
+                  "local_time": {
+                    "day_of_year": 100,
+                    "time_in_24_hours": 15.9
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Flight updated successfully (empty response)"
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_body": {
+                    "value": {
+                      "error_code": "invalid_body",
+                      "error_message": "The request body is not valid JSON"
+                    }
+                  },
+                  "invalid_value": {
+                    "value": {
+                      "error_code": "invalid_value",
+                      "error_message": "The value provided for time_in_24_hours is not valid."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Dataref": {
+        "type": "object",
+        "description": "Represents a dataref in the simulator. The `id` is stable within an X-Plane session but may change between sessions.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Numeric identifier of the dataref for the current simulator session",
+            "example": 40003062912
+          },
+          "name": {
+            "type": "string",
+            "description": "Fully qualified name of the dataref",
+            "example": "sim/flightmodel/position/latitude"
+          },
+          "value_type": {
+            "type": "string",
+            "description": "The data type of the dataref value",
+            "enum": ["float", "double", "int", "int_array", "float_array", "data"],
+            "example": "double"
+          },
+          "is_writable": {
+            "type": "boolean",
+            "description": "Whether this dataref can be written to",
+            "example": false
+          }
+        }
+      },
+      "Command": {
+        "type": "object",
+        "description": "Represents a command in the simulator. The `id` is stable within an X-Plane session but may change between sessions.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Numeric identifier of the command for the current simulator session",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Fully qualified name of the command",
+            "example": "sim/operation/quit"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of what the command does",
+            "example": "Quit X-Plane."
+          }
+        }
+      },
+      "ApiCapabilities": {
+        "type": "object",
+        "description": "API version and X-Plane version information",
+        "properties": {
+          "api": {
+            "type": "object",
+            "properties": {
+              "versions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of supported API versions",
+                "example": ["v1", "v2", "v3"]
+              }
+            }
+          },
+          "x-plane": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string",
+                "description": "Running X-Plane version",
+                "example": "12.4.0"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Error response returned when a request fails",
+        "properties": {
+          "error_code": {
+            "type": "string",
+            "description": "Machine-readable error code"
+          },
+          "error_message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Forbidden": {
+        "description": "Incoming traffic is disabled in X-Plane Settings > Network"
+      }
+    }
+  }
+}

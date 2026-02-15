@@ -1,0 +1,587 @@
+{
+  "asyncapi": "2.6.0",
+  "info": {
+    "title": "X-Plane Local Web API — WebSocket",
+    "version": "3.0.0",
+    "description": "WebSocket interface for the X-Plane local web server. Use this to subscribe to real-time dataref updates (10Hz), stream dataref writes, and control commands.\n\nThe WebSocket endpoint shares the same TCP port as the REST API. All messages are JSON strings.\n\nEvery client message must include a unique `req_id` (numeric, non-recyclable). The server responds with a `result` message containing the same `req_id`.\n\nFor more information, see the [official documentation](https://developer.x-plane.com/article/x-plane-local-web-api/).",
+    "contact": {
+      "name": "X-Plane Developer",
+      "url": "https://developer.x-plane.com"
+    }
+  },
+  "servers": {
+    "local": {
+      "url": "localhost:8086/api/v3",
+      "protocol": "ws",
+      "description": "X-Plane local WebSocket server (default port). Change port with `--web_server_port=XXXX` when launching X-Plane."
+    }
+  },
+  "channels": {
+    "/": {
+      "publish": {
+        "operationId": "sendMessage",
+        "summary": "Messages sent from client to X-Plane",
+        "description": "All client-to-server messages. Each message must include a unique `req_id` and a `type` field.",
+        "message": {
+          "oneOf": [
+            { "$ref": "#/components/messages/DatarefSubscribeValues" },
+            { "$ref": "#/components/messages/DatarefUnsubscribeValues" },
+            { "$ref": "#/components/messages/DatarefSetValues" },
+            { "$ref": "#/components/messages/CommandSubscribeIsActive" },
+            { "$ref": "#/components/messages/CommandUnsubscribeIsActive" },
+            { "$ref": "#/components/messages/CommandSetIsActive" }
+          ]
+        }
+      },
+      "subscribe": {
+        "operationId": "receiveMessage",
+        "summary": "Messages received from X-Plane",
+        "description": "All server-to-client messages including operation results and real-time updates.",
+        "message": {
+          "oneOf": [
+            { "$ref": "#/components/messages/Result" },
+            { "$ref": "#/components/messages/DatarefUpdateValues" },
+            { "$ref": "#/components/messages/CommandUpdateIsActive" }
+          ]
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "DatarefSubscribeValues": {
+        "name": "dataref_subscribe_values",
+        "title": "Subscribe to dataref value updates",
+        "summary": "Subscribe to periodic value updates for one or more datarefs (v1+). Updates are pushed at 10Hz, but only when values change.",
+        "payload": {
+          "type": "object",
+          "required": ["req_id", "type", "params"],
+          "properties": {
+            "req_id": {
+              "$ref": "#/components/schemas/ReqId"
+            },
+            "type": {
+              "type": "string",
+              "const": "dataref_subscribe_values"
+            },
+            "params": {
+              "type": "object",
+              "required": ["datarefs"],
+              "properties": {
+                "datarefs": {
+                  "type": "array",
+                  "description": "List of datarefs to subscribe to",
+                  "items": {
+                    "type": "object",
+                    "required": ["id"],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Dataref ID"
+                      },
+                      "index": {
+                        "description": "For array datarefs: a single index or array of indices to subscribe to",
+                        "oneOf": [
+                          { "type": "integer" },
+                          {
+                            "type": "array",
+                            "items": { "type": "integer" }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "subscribe_example",
+            "summary": "Subscribe to multiple datarefs with index selection",
+            "payload": {
+              "req_id": 9998,
+              "type": "dataref_subscribe_values",
+              "params": {
+                "datarefs": [
+                  { "id": 1223, "index": 2 },
+                  { "id": 1224, "index": [0, 1, 2, 3] },
+                  { "id": 1225 }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "DatarefUnsubscribeValues": {
+        "name": "dataref_unsubscribe_values",
+        "title": "Unsubscribe from dataref value updates",
+        "summary": "Stop receiving updates for one or more datarefs (v1+). The operation is idempotent. Use `\"all\"` to unsubscribe from everything.",
+        "payload": {
+          "type": "object",
+          "required": ["req_id", "type", "params"],
+          "properties": {
+            "req_id": {
+              "$ref": "#/components/schemas/ReqId"
+            },
+            "type": {
+              "type": "string",
+              "const": "dataref_unsubscribe_values"
+            },
+            "params": {
+              "type": "object",
+              "required": ["datarefs"],
+              "properties": {
+                "datarefs": {
+                  "description": "List of datarefs to unsubscribe from, or the string `\"all\"` to unsubscribe from everything",
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id"],
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "format": "int64",
+                            "description": "Dataref ID"
+                          },
+                          "index": {
+                            "description": "For array datarefs: a single index or array of indices to unsubscribe from",
+                            "oneOf": [
+                              { "type": "integer" },
+                              {
+                                "type": "array",
+                                "items": { "type": "integer" }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "string",
+                      "const": "all"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "unsubscribe_specific",
+            "summary": "Unsubscribe from specific datarefs",
+            "payload": {
+              "req_id": 1234,
+              "type": "dataref_unsubscribe_values",
+              "params": {
+                "datarefs": [
+                  { "id": 1223, "index": 2 },
+                  { "id": 1225 }
+                ]
+              }
+            }
+          },
+          {
+            "name": "unsubscribe_all",
+            "summary": "Unsubscribe from all datarefs",
+            "payload": {
+              "req_id": 1235,
+              "type": "dataref_unsubscribe_values",
+              "params": {
+                "datarefs": "all"
+              }
+            }
+          }
+        ]
+      },
+      "DatarefSetValues": {
+        "name": "dataref_set_values",
+        "title": "Set dataref values",
+        "summary": "Set one or more dataref values via WebSocket (v1+). For array datarefs, you can set a specific index or the whole array.",
+        "payload": {
+          "type": "object",
+          "required": ["req_id", "type", "params"],
+          "properties": {
+            "req_id": {
+              "$ref": "#/components/schemas/ReqId"
+            },
+            "type": {
+              "type": "string",
+              "const": "dataref_set_values"
+            },
+            "params": {
+              "type": "object",
+              "required": ["datarefs"],
+              "properties": {
+                "datarefs": {
+                  "type": "array",
+                  "description": "List of datarefs to set",
+                  "items": {
+                    "type": "object",
+                    "required": ["id", "value"],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Dataref ID"
+                      },
+                      "value": {
+                        "description": "Value to set: a number, array of numbers, or base64 string",
+                        "oneOf": [
+                          { "type": "number" },
+                          {
+                            "type": "array",
+                            "items": { "type": "number" }
+                          },
+                          { "type": "string" }
+                        ]
+                      },
+                      "index": {
+                        "type": "integer",
+                        "description": "For array datarefs: specific index to set"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "set_values_example",
+            "payload": {
+              "req_id": 1234,
+              "type": "dataref_set_values",
+              "params": {
+                "datarefs": [
+                  { "id": 88491, "value": 6 },
+                  { "id": 39222, "value": [2, 2, 1, 0] },
+                  { "id": 37555, "value": 2, "index": 1 }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "CommandSubscribeIsActive": {
+        "name": "command_subscribe_is_active",
+        "title": "Subscribe to command activation updates",
+        "summary": "Subscribe to activation status updates for one or more commands (v2+). Updates are pushed when command status changes.",
+        "payload": {
+          "type": "object",
+          "required": ["req_id", "type", "params"],
+          "properties": {
+            "req_id": {
+              "$ref": "#/components/schemas/ReqId"
+            },
+            "type": {
+              "type": "string",
+              "const": "command_subscribe_is_active"
+            },
+            "params": {
+              "type": "object",
+              "required": ["commands"],
+              "properties": {
+                "commands": {
+                  "type": "array",
+                  "description": "List of commands to subscribe to",
+                  "items": {
+                    "type": "object",
+                    "required": ["id"],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "Command ID"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "subscribe_commands",
+            "payload": {
+              "req_id": 9998,
+              "type": "command_subscribe_is_active",
+              "params": {
+                "commands": [
+                  { "id": 1223 },
+                  { "id": 1224 },
+                  { "id": 1225 }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "CommandUnsubscribeIsActive": {
+        "name": "command_unsubscribe_is_active",
+        "title": "Unsubscribe from command activation updates",
+        "summary": "Stop receiving activation updates for one or more commands (v2+). Use `\"all\"` to unsubscribe from everything.",
+        "payload": {
+          "type": "object",
+          "required": ["req_id", "type", "params"],
+          "properties": {
+            "req_id": {
+              "$ref": "#/components/schemas/ReqId"
+            },
+            "type": {
+              "type": "string",
+              "const": "command_unsubscribe_is_active"
+            },
+            "params": {
+              "type": "object",
+              "required": ["commands"],
+              "properties": {
+                "commands": {
+                  "description": "List of commands to unsubscribe from, or `\"all\"`",
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id"],
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "description": "Command ID"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "string",
+                      "const": "all"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "unsubscribe_commands",
+            "payload": {
+              "req_id": 1234,
+              "type": "command_unsubscribe_is_active",
+              "params": {
+                "commands": [
+                  { "id": 1223 },
+                  { "id": 1224 }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "CommandSetIsActive": {
+        "name": "command_set_is_active",
+        "title": "Set command active state",
+        "summary": "Activate or deactivate one or more commands (v2+). Optionally set a duration after which the command auto-deactivates. If disconnected, all commands are automatically released.",
+        "payload": {
+          "type": "object",
+          "required": ["req_id", "type", "params"],
+          "properties": {
+            "req_id": {
+              "$ref": "#/components/schemas/ReqId"
+            },
+            "type": {
+              "type": "string",
+              "const": "command_set_is_active"
+            },
+            "params": {
+              "type": "object",
+              "required": ["commands"],
+              "properties": {
+                "commands": {
+                  "type": "array",
+                  "description": "List of commands to activate or deactivate",
+                  "items": {
+                    "type": "object",
+                    "required": ["id", "is_active"],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "Command ID"
+                      },
+                      "is_active": {
+                        "type": "boolean",
+                        "description": "Whether to activate (true) or deactivate (false) the command"
+                      },
+                      "duration": {
+                        "type": "number",
+                        "format": "float",
+                        "minimum": 0,
+                        "description": "Time in seconds after which the command auto-deactivates. Only valid when `is_active` is true. Omit to hold indefinitely (max 24 hours). Use 0 for immediate press-and-release."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "set_active_example",
+            "payload": {
+              "req_id": 1234,
+              "type": "command_set_is_active",
+              "params": {
+                "commands": [
+                  { "id": 88491, "is_active": true, "duration": 0.5 },
+                  { "id": 37555, "is_active": true, "duration": 0 },
+                  { "id": 39222, "is_active": false }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "Result": {
+        "name": "result",
+        "title": "Operation result",
+        "summary": "Server response to any client request, indicating success or failure.",
+        "payload": {
+          "type": "object",
+          "required": ["req_id", "type", "success"],
+          "properties": {
+            "req_id": {
+              "$ref": "#/components/schemas/ReqId"
+            },
+            "type": {
+              "type": "string",
+              "const": "result"
+            },
+            "success": {
+              "type": "boolean",
+              "description": "Whether the operation succeeded"
+            },
+            "error_code": {
+              "type": "string",
+              "description": "Machine-readable error code (present when success is false)"
+            },
+            "error_message": {
+              "type": "string",
+              "description": "Human-readable error message (present when success is false)"
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "success",
+            "summary": "Successful operation",
+            "payload": {
+              "req_id": 123,
+              "type": "result",
+              "success": true
+            }
+          },
+          {
+            "name": "error",
+            "summary": "Failed operation",
+            "payload": {
+              "req_id": 123,
+              "type": "result",
+              "success": false,
+              "error_code": "invalid_dataref_id",
+              "error_message": "Dataref id 99999 doesn't exist"
+            }
+          }
+        ]
+      },
+      "DatarefUpdateValues": {
+        "name": "dataref_update_values",
+        "title": "Dataref value updates",
+        "summary": "Periodic updates pushed by the server at 10Hz after a successful subscription. Only contains datarefs whose values have changed since the last update.",
+        "payload": {
+          "type": "object",
+          "required": ["type", "data"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "dataref_update_values"
+            },
+            "data": {
+              "type": "object",
+              "description": "Object with dataref IDs as keys and current values as values. Values are numbers for scalar datarefs or arrays for array datarefs.",
+              "additionalProperties": {
+                "oneOf": [
+                  { "type": "number" },
+                  {
+                    "type": "array",
+                    "items": { "type": "number" }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "update_example",
+            "payload": {
+              "type": "dataref_update_values",
+              "data": {
+                "88491": 0,
+                "3994": 5,
+                "199": [0, 0, 0, 4]
+              }
+            }
+          }
+        ]
+      },
+      "CommandUpdateIsActive": {
+        "name": "command_update_is_active",
+        "title": "Command activation updates",
+        "summary": "Pushed by the server when subscribed commands change their activation status (v2+).",
+        "payload": {
+          "type": "object",
+          "required": ["type", "data"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "command_update_is_active"
+            },
+            "data": {
+              "type": "object",
+              "description": "Object with command IDs as keys and activation status (boolean) as values",
+              "additionalProperties": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "name": "command_update_example",
+            "payload": {
+              "type": "command_update_is_active",
+              "data": {
+                "88491": false,
+                "3994": false,
+                "199": true
+              }
+            }
+          }
+        ]
+      }
+    },
+    "schemas": {
+      "ReqId": {
+        "type": "integer",
+        "description": "Unique, non-recyclable numeric identifier for the request. The server response will echo this ID back so you can match responses to requests."
+      }
+    }
+  }
+}
