@@ -2,6 +2,8 @@
 
 An unofficial [OpenAPI 3.0](https://www.openapis.org/) + [AsyncAPI 2.6](https://www.asyncapi.com/) specification for the [X-Plane local Web API](https://developer.x-plane.com/article/x-plane-web-api/).
 
+**[Browse the interactive API docs](https://lyestarzalt.github.io/X-Plane-WebAPI-OpenAPI/)**
+
 Starting with X-Plane 12.1.1, the simulator includes a built-in web server with REST and WebSocket interfaces for communicating with a running instance.
 
 ## Spec Files
