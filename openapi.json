@@ -13,10 +13,6 @@
     {
       "url": "http://localhost:8086/api/v3",
       "description": "X-Plane local web server (v3, default port)"
-    },
-    {
-      "url": "http://localhost:8086/api",
-      "description": "X-Plane local web server (unversioned, for /capabilities only)"
     }
   ],
   "tags": [
