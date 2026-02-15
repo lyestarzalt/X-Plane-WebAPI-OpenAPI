@@ -710,7 +710,7 @@
                   "duration_missing": {
                     "value": {
                       "error_code": "duration_missing",
-                      "error_message": "Missing duration parameter"
+                      "error_message": "Duration parameter is missing"
                     }
                   }
                 }
@@ -816,10 +816,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "nullable": true,
-                  "description": "Returns null on success"
+                  "$ref": "#/components/schemas/FlightSuccessResponse"
                 },
-                "example": null
+                "example": {
+                  "error_code": "success"
+                }
               }
             }
           },
@@ -831,22 +832,22 @@
                   "$ref": "#/components/schemas/ErrorResponse"
                 },
                 "examples": {
-                  "invalid_body": {
+                  "json_invalid_format": {
                     "value": {
-                      "error_code": "invalid_body",
-                      "error_message": "The request body is not valid JSON"
+                      "error_code": "json_invalid",
+                      "error_message": "Failed to parse json, json format invalid"
                     }
                   },
-                  "invalid_value": {
+                  "json_invalid_missing_keys": {
                     "value": {
-                      "error_code": "invalid_value",
-                      "error_message": "The value provided for airport_id is not valid."
+                      "error_code": "json_invalid",
+                      "error_message": "Provided json is invalid, to start a new flight both a start and an aircraft key must be present."
                     }
                   },
                   "missing_aircraft": {
                     "value": {
                       "error_code": "missing_aircraft",
-                      "error_message": "Aircraft path doesn't exist"
+                      "error_message": "Failed to parse aircraft_spec: no aircraft file found at path: fake.acf"
                     }
                   },
                   "missing_livery": {
@@ -864,7 +865,7 @@
                   "missing_airport": {
                     "value": {
                       "error_code": "missing_airport",
-                      "error_message": "Specified airport not found"
+                      "error_message": "Failed to parse ramp start, airport id 'XXXX' is not recognized"
                     }
                   },
                   "missing_ramp": {
@@ -924,10 +925,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "nullable": true,
-                  "description": "Returns null on success"
+                  "$ref": "#/components/schemas/FlightSuccessResponse"
                 },
-                "example": null
+                "example": {
+                  "error_code": "success"
+                }
               }
             }
           },
@@ -939,16 +941,10 @@
                   "$ref": "#/components/schemas/ErrorResponse"
                 },
                 "examples": {
-                  "invalid_body": {
+                  "json_invalid": {
                     "value": {
-                      "error_code": "invalid_body",
-                      "error_message": "The request body is not valid JSON"
-                    }
-                  },
-                  "invalid_value": {
-                    "value": {
-                      "error_code": "invalid_value",
-                      "error_message": "The value provided for time_in_24_hours is not valid."
+                      "error_code": "json_invalid",
+                      "error_message": "Failed to parse json, json format invalid"
                     }
                   }
                 }
@@ -1053,6 +1049,17 @@
           "error_message": {
             "type": "string",
             "description": "Human-readable error message"
+          }
+        }
+      },
+      "FlightSuccessResponse": {
+        "type": "object",
+        "description": "Success response returned by flight endpoints. Unlike other endpoints (which return `null`), flight endpoints return `{\"error_code\": \"success\"}`.",
+        "properties": {
+          "error_code": {
+            "type": "string",
+            "const": "success",
+            "description": "Always \"success\" for successful flight operations"
           }
         }
       },
