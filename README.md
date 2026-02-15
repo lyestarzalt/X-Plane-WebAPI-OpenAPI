@@ -64,7 +64,7 @@ curl 'http://localhost:8086/api/v3/datarefs?filter%5Bname%5D=sim/cockpit2/gauges
 # Read the barometer value (use the ID from above)
 curl http://localhost:8086/api/v3/datarefs/40003647712/value
 
-# Set the barometer to standard pressure (29.92 inHg)
+# Set the barometer to standard pressure (29.92 inHg) — you'll see it move in the cockpit!
 curl -X PATCH http://localhost:8086/api/v3/datarefs/40003647712/value \
   -H 'Content-Type: application/json' \
   -d '{"data": 29.92}'
