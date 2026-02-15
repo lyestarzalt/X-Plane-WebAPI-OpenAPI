@@ -165,7 +165,7 @@
                   "invalid_field": {
                     "value": {
                       "error_code": "invalid_field",
-                      "error_message": "Field foo does not exist"
+                      "error_message": "Field name 'foo' does not exist"
                     }
                   }
                 }
@@ -184,7 +184,7 @@
                 },
                 "example": {
                   "error_code": "invalid_dataref_name",
-                  "error_message": "Dataref foo doesn't exist"
+                  "error_message": "Dataref name 'foo' doesn't exist"
                 }
               }
             }
@@ -564,7 +564,7 @@
                   "invalid_field": {
                     "value": {
                       "error_code": "invalid_field",
-                      "error_message": "Field foo does not exist"
+                      "error_message": "Field name 'foo' does not exist"
                     }
                   }
                 }
@@ -583,7 +583,7 @@
                 },
                 "example": {
                   "error_code": "invalid_command_name",
-                  "error_message": "Command foo doesn't exist"
+                  "error_message": "Command name 'foo' doesn't exist"
                 }
               }
             }
