@@ -1,6 +1,6 @@
 # X-Plane Local Web API — OpenAPI + AsyncAPI Specification
 
-An unofficial [OpenAPI 3.0](https://www.openapis.org/) + [AsyncAPI 2.6](https://www.asyncapi.com/) specification for the [X-Plane local Web API](https://developer.x-plane.com/article/x-plane-local-web-api/).
+An unofficial [OpenAPI 3.0](https://www.openapis.org/) + [AsyncAPI 2.6](https://www.asyncapi.com/) specification for the [X-Plane local Web API](https://developer.x-plane.com/article/x-plane-web-api/).
 
 Starting with X-Plane 12.1.1, the simulator includes a built-in web server with REST and WebSocket interfaces for communicating with a running instance.
 
@@ -119,7 +119,7 @@ To disable the API entirely, set "Disable Incoming Traffic" in Settings > Networ
 
 ## Disclaimer
 
-This is an **unofficial** community-maintained specification. It is not affiliated with or endorsed by Laminar Research. The API is provided by X-Plane and documented at [developer.x-plane.com](https://developer.x-plane.com/article/x-plane-local-web-api/).
+This is an **unofficial** community-maintained specification. It is not affiliated with or endorsed by Laminar Research. The API is provided by X-Plane and documented at [developer.x-plane.com](https://developer.x-plane.com/article/x-plane-web-api/).
 
 ## Contributing
 

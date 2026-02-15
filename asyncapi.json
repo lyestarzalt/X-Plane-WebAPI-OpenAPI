@@ -3,7 +3,7 @@
   "info": {
     "title": "X-Plane Local Web API — WebSocket",
     "version": "3.0.0",
-    "description": "WebSocket interface for the X-Plane local web server. Use this to subscribe to real-time dataref updates (10Hz), stream dataref writes, and control commands.\n\nThe WebSocket endpoint shares the same TCP port as the REST API. All messages are JSON strings.\n\nEvery client message must include a unique `req_id` (numeric, non-recyclable). The server responds with a `result` message containing the same `req_id`.\n\nFor more information, see the [official documentation](https://developer.x-plane.com/article/x-plane-local-web-api/).",
+    "description": "WebSocket interface for the X-Plane local web server. Use this to subscribe to real-time dataref updates (10Hz), stream dataref writes, and control commands.\n\nThe WebSocket endpoint shares the same TCP port as the REST API. All messages are JSON strings.\n\nEvery client message must include a unique `req_id` (numeric, non-recyclable). Each message you send must have a new, never-before-used `req_id`. The server responds with a `result` message containing the same `req_id` so you can match responses to requests. If the operation type is not recognized, the server returns the `unknown_type` error code.\n\nFor more information, see the [official documentation](https://developer.x-plane.com/article/x-plane-web-api/).",
     "contact": {
       "name": "X-Plane Developer",
       "url": "https://developer.x-plane.com"
@@ -52,7 +52,7 @@
       "DatarefSubscribeValues": {
         "name": "dataref_subscribe_values",
         "title": "Subscribe to dataref value updates",
-        "summary": "Subscribe to periodic value updates for one or more datarefs (v1+). Updates are pushed at 10Hz, but only when values change.",
+        "summary": "Subscribe to periodic value updates for one or more datarefs (v1+). Updates are pushed at 10Hz, but only when values change. Possible error codes: `index_out_of_range`, `not_an_array`, `invalid_dataref_id`.",
         "payload": {
           "type": "object",
           "required": ["req_id", "type", "params"],
@@ -118,7 +118,7 @@
       "DatarefUnsubscribeValues": {
         "name": "dataref_unsubscribe_values",
         "title": "Unsubscribe from dataref value updates",
-        "summary": "Stop receiving updates for one or more datarefs (v1+). The operation is idempotent. Use `\"all\"` to unsubscribe from everything.",
+        "summary": "Stop receiving updates for one or more datarefs (v1+). The operation is idempotent. Use `\"all\"` to unsubscribe from everything. Possible error codes: `index_out_of_range`, `not_an_array`, `invalid_dataref_id`.",
         "payload": {
           "type": "object",
           "required": ["req_id", "type", "params"],
@@ -202,7 +202,7 @@
       "DatarefSetValues": {
         "name": "dataref_set_values",
         "title": "Set dataref values",
-        "summary": "Set one or more dataref values via WebSocket (v1+). For array datarefs, you can set a specific index or the whole array.",
+        "summary": "Set one or more dataref values via WebSocket (v1+). For array datarefs, you can set a specific index or the whole array. Possible error codes: `index_out_of_range`, `not_an_array`, `insufficient_data`, `invalid_dataref_id`.",
         "payload": {
           "type": "object",
           "required": ["req_id", "type", "params"],
@@ -272,7 +272,7 @@
       "CommandSubscribeIsActive": {
         "name": "command_subscribe_is_active",
         "title": "Subscribe to command activation updates",
-        "summary": "Subscribe to activation status updates for one or more commands (v2+). Updates are pushed when command status changes.",
+        "summary": "Subscribe to activation status updates for one or more commands (v2+). Updates are pushed when command status changes. Possible error codes: `invalid_command_id`.",
         "payload": {
           "type": "object",
           "required": ["req_id", "type", "params"],
@@ -326,7 +326,7 @@
       "CommandUnsubscribeIsActive": {
         "name": "command_unsubscribe_is_active",
         "title": "Unsubscribe from command activation updates",
-        "summary": "Stop receiving activation updates for one or more commands (v2+). Use `\"all\"` to unsubscribe from everything.",
+        "summary": "Stop receiving activation updates for one or more commands (v2+). Use `\"all\"` to unsubscribe from everything. Possible error codes: `invalid_command_id`.",
         "payload": {
           "type": "object",
           "required": ["req_id", "type", "params"],
@@ -387,7 +387,7 @@
       "CommandSetIsActive": {
         "name": "command_set_is_active",
         "title": "Set command active state",
-        "summary": "Activate or deactivate one or more commands (v2+). Optionally set a duration after which the command auto-deactivates. If disconnected, all commands are automatically released.",
+        "summary": "Activate or deactivate one or more commands (v2+). Optionally set a duration after which the command auto-deactivates. If disconnected, all commands are automatically released. Possible error codes: `invalid_command_id`, `duration_out_of_range`.",
         "payload": {
           "type": "object",
           "required": ["req_id", "type", "params"],
@@ -451,7 +451,7 @@
       "Result": {
         "name": "result",
         "title": "Operation result",
-        "summary": "Server response to any client request, indicating success or failure.",
+        "summary": "Server response to any client request, indicating success or failure. If the operation type is not recognized, the server returns the `unknown_type` error code.",
         "payload": {
           "type": "object",
           "required": ["req_id", "type", "success"],
@@ -496,6 +496,16 @@
               "success": false,
               "error_code": "invalid_dataref_id",
               "error_message": "Dataref id 99999 doesn't exist"
+            }
+          },
+          {
+            "name": "unknown_type",
+            "summary": "Unrecognized operation type",
+            "payload": {
+              "req_id": 124,
+              "type": "result",
+              "success": false,
+              "error_code": "unknown_type"
             }
           }
         ]
@@ -580,7 +590,7 @@
     "schemas": {
       "ReqId": {
         "type": "integer",
-        "description": "Unique, non-recyclable numeric identifier for the request. The server response will echo this ID back so you can match responses to requests."
+        "description": "Unique, non-recyclable numeric identifier for the request. Each message you send must have a new, never-before-used req_id. The server response will echo this ID back in the `result` message so you can match responses to requests."
       }
     }
   }

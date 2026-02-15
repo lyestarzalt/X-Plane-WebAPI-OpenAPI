@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "X-Plane Local Web API",
-    "description": "Starting with version 12.1.1, X-Plane includes a built-in web server that provides a REST and WebSocket API for communicating with a running simulator instance.\n\nThis spec covers the **REST API** endpoints. For WebSocket message types, see the companion AsyncAPI spec.\n\nThe web server listens on `localhost:8086` by default. You can change the port with `--web_server_port=XXXX` when launching X-Plane. To disable the API entirely, set the network security policy to \"Disable Incoming Traffic\" in Settings > Network.\n\n**Note:** The `/api/capabilities` endpoint is unversioned (not under `/api/v3/`). All other endpoints are versioned under `/api/v3/`.\n\nFor more information, see the [official documentation](https://developer.x-plane.com/article/x-plane-local-web-api/).",
+    "description": "Starting with version 12.1.1, X-Plane includes a built-in web server that provides a REST and WebSocket API for communicating with a running simulator instance.\n\nThis spec covers the **REST API** endpoints. For WebSocket message types, see the companion AsyncAPI spec.\n\nThe web server listens on `localhost:8086` by default. You can change the port with `--web_server_port=XXXX` when launching X-Plane. To disable the API entirely, set the network security policy to \"Disable Incoming Traffic\" in Settings > Network.\n\n**Note:** The `/api/capabilities` endpoint is unversioned (not under `/api/v3/`). All other endpoints are versioned under `/api/v3/`.\n\nFor more information, see the [official documentation](https://developer.x-plane.com/article/x-plane-web-api/).",
     "version": "3.0.0",
     "contact": {
       "name": "X-Plane Developer",
@@ -232,7 +232,7 @@
       "get": {
         "tags": ["Datarefs"],
         "summary": "Get dataref value",
-        "description": "Returns the current value of a dataref. For array datarefs, returns the full array or a single element if `index` is specified.",
+        "description": "Returns the current value of a dataref. For array datarefs, returns the full array or a single element if `index` is specified.\n\n**Note:** The official documentation shows a copy-pasted error table from List datarefs for this endpoint (with `start_out_of_range`, `limit_out_of_range`, etc.). The actual error codes for this endpoint are `index_out_of_range`, `not_an_array`, and `invalid_dataref_id`.",
         "operationId": "getDatarefValue",
         "parameters": [
           {
@@ -300,7 +300,7 @@
                   "index_out_of_range": {
                     "value": {
                       "error_code": "index_out_of_range",
-                      "error_message": "Index is out of range"
+                      "error_message": "Dataref array index out of range"
                     }
                   },
                   "not_an_array": {
@@ -428,7 +428,7 @@
                   "incompatible_data": {
                     "value": {
                       "error_code": "incompatible_data",
-                      "error_message": "Provided data is too much or not enough to set all elements of the dataref array"
+                      "error_message": "Provided data is too much or not enough to set all elements of the dataref array, or sent an array to write to a non-array dataref."
                     }
                   },
                   "invalid_body": {
@@ -710,7 +710,7 @@
                   "duration_missing": {
                     "value": {
                       "error_code": "duration_missing",
-                      "error_message": "Duration parameter is missing"
+                      "error_message": "Missing duration parameter"
                     }
                   }
                 }
@@ -741,7 +741,7 @@
       "post": {
         "tags": ["Flight"],
         "summary": "Start a flight",
-        "description": "Starts a new flight with the specified configuration. Introduced in API v3 (X-Plane 12.4.0+).\n\nSee the [Flight Initialization API documentation](https://developer.x-plane.com/article/flight-initialization-api/) for the full JSON init structure.",
+        "description": "Starts a new flight with the specified configuration. Introduced in API v3 (X-Plane 12.4.0+).\n\nRequires: `aircraft` and exactly one start location key (`runway_start`, `ramp_start`, `lle_ground_start`, `lle_air_start`, or `boat_start`). All other keys are optional.\n\nSee the [Flight Initialization API documentation](https://developer.x-plane.com/article/flight-initialization-api/) for full details.",
         "operationId": "startFlight",
         "requestBody": {
           "required": true,
@@ -752,48 +752,58 @@
                 "required": ["data"],
                 "properties": {
                   "data": {
-                    "type": "object",
-                    "description": "Flight initialization structure. See X-Plane Flight Initialization API docs for full schema.",
-                    "properties": {
-                      "ramp_start": {
-                        "type": "object",
-                        "description": "Starting position at an airport ramp",
-                        "properties": {
-                          "airport_id": {
-                            "type": "string",
-                            "description": "Airport ICAO code",
-                            "example": "KPDX"
-                          },
-                          "ramp": {
-                            "type": "string",
-                            "description": "Ramp/gate identifier",
-                            "example": "A1"
-                          }
-                        }
-                      },
-                      "aircraft": {
-                        "type": "object",
-                        "description": "Aircraft to load",
-                        "properties": {
-                          "path": {
-                            "type": "string",
-                            "description": "Relative path to the aircraft .acf file",
-                            "example": "Aircraft/Laminar Research/Boeing 737-800/b738.acf"
-                          }
-                        }
-                      }
-                    }
+                    "$ref": "#/components/schemas/FlightInit"
                   }
                 }
               },
-              "example": {
-                "data": {
-                  "ramp_start": {
-                    "airport_id": "KPDX",
-                    "ramp": "A1"
-                  },
-                  "aircraft": {
-                    "path": "Aircraft/Laminar Research/Boeing 737-800/b738.acf"
+              "examples": {
+                "minimal": {
+                  "summary": "Minimal ramp start",
+                  "value": {
+                    "data": {
+                      "ramp_start": {
+                        "airport_id": "KPDX",
+                        "ramp": "A1"
+                      },
+                      "aircraft": {
+                        "path": "Aircraft/Laminar Research/Boeing 737-800/b738.acf"
+                      }
+                    }
+                  }
+                },
+                "full": {
+                  "summary": "Runway start with weather and time",
+                  "value": {
+                    "data": {
+                      "runway_start": {
+                        "airport_id": "KBOS",
+                        "runway": "22L"
+                      },
+                      "aircraft": {
+                        "path": "Aircraft/Laminar Research/Cessna 172SP/Cessna_172SP.acf",
+                        "livery": "default"
+                      },
+                      "weight": {
+                        "payload_weight_in_kilograms": [80, 80, 0, 0, 0, 0, 0, 0, 0],
+                        "fueltank_weight_in_kilograms": [50, 50, 0, 0, 0, 0, 0, 0, 0]
+                      },
+                      "engine_status": {
+                        "all_engines": { "running": true }
+                      },
+                      "local_time": {
+                        "day_of_year": 150,
+                        "time_in_24_hours": 14.5
+                      },
+                      "weather": {
+                        "definition": "vfr_scattered",
+                        "vertical_speed_in_thermal_in_feet_per_minute": 200,
+                        "wave_height_in_meters": 1.5,
+                        "wave_direction_in_degrees": 180,
+                        "terrain_state": "dry",
+                        "variation_across_region_percentage": 50,
+                        "evolution_over_time_enum": "static"
+                      }
+                    }
                   }
                 }
               }
@@ -850,6 +860,24 @@
                       "error_code": "missing_scenery",
                       "error_message": "All or some scenery for the requested conditions is missing"
                     }
+                  },
+                  "missing_airport": {
+                    "value": {
+                      "error_code": "missing_airport",
+                      "error_message": "Specified airport not found"
+                    }
+                  },
+                  "missing_ramp": {
+                    "value": {
+                      "error_code": "missing_ramp",
+                      "error_message": "Specified ramp start not found"
+                    }
+                  },
+                  "missing_runway": {
+                    "value": {
+                      "error_code": "missing_runway",
+                      "error_message": "Specified runway not found"
+                    }
                   }
                 }
               }
@@ -863,7 +891,7 @@
       "patch": {
         "tags": ["Flight"],
         "summary": "Update flight",
-        "description": "Updates the current flight configuration. You cannot change the start location or aircraft during an update. Introduced in API v3 (X-Plane 12.4.0+).\n\nSee the [Flight Initialization API documentation](https://developer.x-plane.com/article/flight-initialization-api/) for the full JSON structure.",
+        "description": "Updates the current flight configuration. You cannot change the start location or aircraft during an update — these require starting a new flight. All keys are optional; omitted keys leave corresponding parameters unchanged. Introduced in API v3 (X-Plane 12.4.0+).\n\nSee the [Flight Initialization API documentation](https://developer.x-plane.com/article/flight-initialization-api/) for full details.",
         "operationId": "updateFlight",
         "requestBody": {
           "required": true,
@@ -875,7 +903,7 @@
                 "properties": {
                   "data": {
                     "type": "object",
-                    "description": "Partial flight configuration update. See X-Plane Flight Initialization API docs for full schema."
+                    "description": "Partial flight configuration update. All keys are optional. Cannot include start location or aircraft keys."
                   }
                 }
               },
@@ -1025,6 +1053,430 @@
           "error_message": {
             "type": "string",
             "description": "Human-readable error message"
+          }
+        }
+      },
+      "FlightInit": {
+        "type": "object",
+        "description": "Flight initialization structure. Requires `aircraft` and exactly one start location key. See the [Flight Initialization API docs](https://developer.x-plane.com/article/flight-initialization-api/) for full details.",
+        "properties": {
+          "aircraft": {
+            "type": "object",
+            "description": "Aircraft specification (required for new flights)",
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Path to .acf file relative to X-Plane root directory",
+                "example": "Aircraft/Laminar Research/Cessna 172SP/Cessna_172SP.acf"
+              },
+              "livery": {
+                "type": "string",
+                "description": "Name of livery subdirectory in the aircraft's liveries folder"
+              }
+            }
+          },
+          "runway_start": {
+            "type": "object",
+            "description": "Start on a runway. Cannot combine `final_distance_in_nautical_miles` with `tow_type`.",
+            "required": ["airport_id", "runway"],
+            "properties": {
+              "airport_id": {
+                "type": "string",
+                "description": "Valid X-Plane airport ID"
+              },
+              "runway": {
+                "type": "string",
+                "description": "Runway ID at the specified airport"
+              },
+              "final_distance_in_nautical_miles": {
+                "type": "number",
+                "description": "If present, starts on final approach at this distance. Otherwise starts at runway threshold."
+              },
+              "tow_type": {
+                "type": "string",
+                "description": "Tow type for glider launch",
+                "enum": ["tug", "winch", "none"],
+                "default": "none"
+              },
+              "tow_aircraft": {
+                "type": "object",
+                "description": "Aircraft specification for tow plane. Required if tow_type is 'tug'.",
+                "properties": {
+                  "path": { "type": "string" }
+                }
+              }
+            }
+          },
+          "ramp_start": {
+            "type": "object",
+            "description": "Start at an airport ramp/gate",
+            "required": ["airport_id", "ramp"],
+            "properties": {
+              "airport_id": {
+                "type": "string",
+                "description": "Valid X-Plane airport ID",
+                "example": "KPDX"
+              },
+              "ramp": {
+                "type": "string",
+                "description": "Name of the ramp start location",
+                "example": "A1"
+              }
+            }
+          },
+          "lle_ground_start": {
+            "type": "object",
+            "description": "Start on the ground at a lat/lon/heading",
+            "required": ["latitude", "longitude", "heading_true"],
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "description": "Latitude in degrees (-90 to 90)"
+              },
+              "longitude": {
+                "type": "number",
+                "description": "Longitude in degrees (-180 to 180)"
+              },
+              "heading_true": {
+                "type": "number",
+                "description": "True heading in degrees (0 to 360)"
+              }
+            }
+          },
+          "lle_air_start": {
+            "type": "object",
+            "description": "Start in the air at a lat/lon/elevation. Must provide either `speed_in_meters_per_second` or `speed_enum`.",
+            "required": ["latitude", "longitude", "elevation_in_meters", "heading_true"],
+            "properties": {
+              "latitude": {
+                "type": "number",
+                "description": "Latitude in degrees (-90 to 90)"
+              },
+              "longitude": {
+                "type": "number",
+                "description": "Longitude in degrees (-180 to 180)"
+              },
+              "elevation_in_meters": {
+                "type": "number",
+                "description": "Elevation MSL in meters"
+              },
+              "heading_true": {
+                "type": "number",
+                "description": "True heading in degrees (0 to 360)"
+              },
+              "speed_in_meters_per_second": {
+                "type": "number",
+                "description": "Speed in m/s (provide this OR speed_enum)"
+              },
+              "speed_enum": {
+                "type": "string",
+                "description": "Speed preset (provide this OR speed_in_meters_per_second)",
+                "enum": ["short_field_approach", "normal_approach", "cruise"]
+              },
+              "pitch_in_degrees": {
+                "type": "number",
+                "description": "Aircraft pitch (default: 0)"
+              }
+            }
+          },
+          "boat_start": {
+            "type": "object",
+            "description": "Start on a carrier or frigate. Cannot combine `start_position` with `final_distance_in_nautical_miles`.",
+            "required": ["boat_name"],
+            "properties": {
+              "boat_name": {
+                "type": "string",
+                "enum": ["carrier", "frigate"]
+              },
+              "start_position": {
+                "type": "string",
+                "description": "Deck position. Required for carrier deck starts. Not allowed with final_distance_in_nautical_miles.",
+                "enum": ["catapult_1", "catapult_2", "catapult_3", "catapult_4", "deck"]
+              },
+              "boat_location": {
+                "type": "object",
+                "description": "Relocate the boat to this position",
+                "properties": {
+                  "latitude": { "type": "number" },
+                  "longitude": { "type": "number" }
+                }
+              },
+              "final_distance_in_nautical_miles": {
+                "type": "number",
+                "description": "Start on final approach at this distance"
+              }
+            }
+          },
+          "weight": {
+            "type": "object",
+            "description": "Weight and balance configuration",
+            "properties": {
+              "payload_weight_in_kilograms": {
+                "type": "array",
+                "items": { "type": "number" },
+                "description": "Up to 9 payload station weights"
+              },
+              "fueltank_weight_in_kilograms": {
+                "type": "array",
+                "items": { "type": "number" },
+                "description": "1-9 fuel tank weights in kilograms"
+              },
+              "jato_weight_in_kilograms": {
+                "type": "number"
+              },
+              "slung_load": {
+                "type": "object",
+                "properties": {
+                  "path_to_obj": { "type": "string" },
+                  "weight_in_kilograms": { "type": "number" }
+                }
+              },
+              "jettisonable_weight_in_kilograms": { "type": "number" },
+              "shiftable_weight_in_kilograms": { "type": "number" },
+              "deice_holdover_time_in_minutes": { "type": "number" },
+              "oxygen_pressure_in_millibars": { "type": "number" },
+              "deice_fluid_in_liters": { "type": "number" },
+              "external_fueltank_weight_in_kilograms": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            }
+          },
+          "engine_status": {
+            "type": "object",
+            "description": "Engine configuration",
+            "properties": {
+              "all_engines": {
+                "type": "object",
+                "properties": {
+                  "running": {
+                    "type": "boolean",
+                    "description": "Whether all engines should be running"
+                  }
+                },
+                "required": ["running"]
+              }
+            }
+          },
+          "weapons": {
+            "type": "array",
+            "description": "Weapon loadout specifications",
+            "items": {
+              "type": "object",
+              "required": ["index", "filename"],
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "description": "Hardpoint index from Plane Maker"
+                },
+                "filename": {
+                  "type": "string",
+                  "description": "Name of .wpn file"
+                }
+              }
+            }
+          },
+          "failures": {
+            "type": "object",
+            "description": "System failure configuration",
+            "properties": {
+              "fix_everything": {
+                "type": "boolean",
+                "description": "Fix all systems before applying new failures (default: true)"
+              },
+              "mean_time_between_failures_in_hours": {
+                "type": "number",
+                "description": "MTBF for random failures (0 = disabled)"
+              },
+              "operation_failures": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "status"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Failure system name"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["always_work", "fail_mean_time_in_hours", "fail_exact_time_in_hours", "fail_at_speed_in_knots", "fail_at_altitude_in_feet", "fail_at_command_trigger", "inoperative"]
+                    },
+                    "value": {
+                      "type": "number",
+                      "description": "Required for time/speed/altitude failure types"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "ai_aircraft": {
+            "type": "array",
+            "description": "AI aircraft specifications",
+            "items": {
+              "type": "object",
+              "required": ["aircraft", "mission"],
+              "properties": {
+                "aircraft": {
+                  "type": "object",
+                  "properties": {
+                    "path": { "type": "string" }
+                  }
+                },
+                "mission": {
+                  "type": "string",
+                  "enum": ["atc", "combat_team_red", "combat_team_blue", "combat_team_green", "combat_team_gold"]
+                }
+              }
+            }
+          },
+          "formation_aircraft": {
+            "type": "object",
+            "description": "AI aircraft for formation flying",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Path to .acf file"
+              }
+            }
+          },
+          "incursion": {
+            "type": "object",
+            "description": "Runway incursion configuration",
+            "properties": {
+              "aircraft": {
+                "type": "object",
+                "properties": {
+                  "path": { "type": "string" }
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": ["flight_incursion", "runway_incursion_arm", "runway_incursion_execute", "clear_incursion"]
+              }
+            }
+          },
+          "use_system_time": {
+            "type": "boolean",
+            "description": "Use system time. Mutually exclusive with local_time, gmt_time, and time_enum."
+          },
+          "local_time": {
+            "type": "object",
+            "description": "Set local time. Mutually exclusive with use_system_time, gmt_time, and time_enum.",
+            "required": ["day_of_year", "time_in_24_hours"],
+            "properties": {
+              "day_of_year": {
+                "type": "integer",
+                "description": "Day of year (0 = January 1)"
+              },
+              "time_in_24_hours": {
+                "type": "number",
+                "description": "Time of day in hours (e.g. 13.5 = 1:30 PM)"
+              }
+            }
+          },
+          "gmt_time": {
+            "type": "object",
+            "description": "Set GMT time. Mutually exclusive with use_system_time, local_time, and time_enum.",
+            "required": ["day_of_year", "time_in_24_hours"],
+            "properties": {
+              "day_of_year": {
+                "type": "integer",
+                "description": "Day of year (0 = January 1)"
+              },
+              "time_in_24_hours": {
+                "type": "number",
+                "description": "Time of day in hours (e.g. 13.5 = 1:30 PM)"
+              }
+            }
+          },
+          "time_enum": {
+            "type": "string",
+            "description": "Time preset. Mutually exclusive with use_system_time, local_time, and gmt_time.",
+            "enum": ["day", "sunset", "evening", "night"]
+          },
+          "weather": {
+            "description": "Weather configuration. Either the string `\"use_real_weather\"` or a weather definition object.",
+            "oneOf": [
+              {
+                "type": "string",
+                "const": "use_real_weather"
+              },
+              {
+                "type": "object",
+                "description": "Weather scenario definition",
+                "required": ["definition", "vertical_speed_in_thermal_in_feet_per_minute", "wave_height_in_meters", "wave_direction_in_degrees", "terrain_state", "variation_across_region_percentage", "evolution_over_time_enum"],
+                "properties": {
+                  "definition": {
+                    "description": "Weather preset name or custom weather definition object",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": ["vfr_few_clouds", "vfr_scattered", "vfr_broken", "marginal_vfr_overcast", "ifr_non_precision", "ifr_precision", "convective", "large_cell_thunderstorm"]
+                      },
+                      {
+                        "type": "object",
+                        "description": "Custom weather definition",
+                        "required": ["latitude_in_degrees", "longitude_in_degrees", "elevation_in_meters", "visibility_in_kilometers"],
+                        "properties": {
+                          "latitude_in_degrees": { "type": "number" },
+                          "longitude_in_degrees": { "type": "number" },
+                          "elevation_in_meters": { "type": "number" },
+                          "visibility_in_kilometers": { "type": "number" },
+                          "temperature_in_degrees_celsius": { "type": "number" },
+                          "altimeter_setting_in_hpa": { "type": "number" },
+                          "precipitation_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+                          "clouds": {
+                            "type": "array",
+                            "maxItems": 3,
+                            "items": {
+                              "type": "object",
+                              "required": ["type", "cover_ratio", "bases_in_feet_msl", "tops_in_feet_msl"],
+                              "properties": {
+                                "type": { "type": "string", "enum": ["cirrus", "stratus", "cumulus", "cumulunimbus"] },
+                                "cover_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+                                "bases_in_feet_msl": { "type": "number" },
+                                "tops_in_feet_msl": { "type": "number" }
+                              }
+                            }
+                          },
+                          "wind": {
+                            "type": "array",
+                            "maxItems": 13,
+                            "items": {
+                              "type": "object",
+                              "required": ["altitude_in_feet_msl", "speed_in_knots", "direction_in_degrees_true"],
+                              "properties": {
+                                "altitude_in_feet_msl": { "type": "number" },
+                                "speed_in_knots": { "type": "number" },
+                                "direction_in_degrees_true": { "type": "number" },
+                                "gust_increase_in_knots": { "type": "number" },
+                                "shear_in_degrees": { "type": "number" },
+                                "turbulence_ratio": { "type": "number", "minimum": 0, "maximum": 1 }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "vertical_speed_in_thermal_in_feet_per_minute": { "type": "number" },
+                  "wave_height_in_meters": { "type": "number" },
+                  "wave_direction_in_degrees": { "type": "number", "description": "True heading" },
+                  "terrain_state": {
+                    "type": "string",
+                    "enum": ["dry", "lightly_wet", "medium_wet", "very_wet", "lightly_puddly", "medium_puddly", "very_puddly", "lightly_snowy", "medium_snowy", "very_snowy", "lightly_icy", "medium_icy", "very_icy", "lightly_snowy_and_icy", "medium_snowy_and_icy", "very_snowy_and_icy"]
+                  },
+                  "variation_across_region_percentage": { "type": "number" },
+                  "evolution_over_time_enum": {
+                    "type": "string",
+                    "enum": ["rapidly_improving", "improving", "gradually_improving", "static", "gradually_deteriorating", "deteriorating", "rapidly_deteriorating"]
+                  }
+                }
+              }
+            ]
           }
         }
       }
