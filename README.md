@@ -58,16 +58,16 @@ curl http://localhost:8086/api/capabilities
 # List first 5 datarefs
 curl 'http://localhost:8086/api/v3/datarefs?limit=5'
 
-# Find a dataref by name
-curl 'http://localhost:8086/api/v3/datarefs?filter%5Bname%5D=sim/flightmodel/position/latitude'
+# Find the pilot barometer setting dataref (writable)
+curl 'http://localhost:8086/api/v3/datarefs?filter%5Bname%5D=sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot'
 
-# Read a dataref value (use the ID from above)
-curl http://localhost:8086/api/v3/datarefs/40003062912/value
+# Read the barometer value (use the ID from above)
+curl http://localhost:8086/api/v3/datarefs/40003647712/value
 
-# Set a dataref value
-curl -X PATCH http://localhost:8086/api/v3/datarefs/40003062912/value \
+# Set the barometer to standard pressure (29.92 inHg)
+curl -X PATCH http://localhost:8086/api/v3/datarefs/40003647712/value \
   -H 'Content-Type: application/json' \
-  -d '{"data": 45.0}'
+  -d '{"data": 29.92}'
 
 # Get dataref count
 curl http://localhost:8086/api/v3/datarefs/count
@@ -75,8 +75,8 @@ curl http://localhost:8086/api/v3/datarefs/count
 # List commands
 curl 'http://localhost:8086/api/v3/commands?limit=5'
 
-# Activate a command (press and release)
-curl -X POST http://localhost:8086/api/v3/command/1/activate \
+# Nudge the barometer up (press and release)
+curl -X POST http://localhost:8086/api/v3/command/2114/activate \
   -H 'Content-Type: application/json' \
   -d '{"duration": 0}'
 ```
@@ -87,8 +87,8 @@ curl -X POST http://localhost:8086/api/v3/command/1/activate \
 # Connect
 websocat ws://localhost:8086/api/v3
 
-# Subscribe to a dataref (type this after connecting)
-{"req_id": 1, "type": "dataref_subscribe_values", "params": {"datarefs": [{"id": 40003062912}]}}
+# Subscribe to the barometer dataref (type this after connecting)
+{"req_id": 1, "type": "dataref_subscribe_values", "params": {"datarefs": [{"id": 40003647712}]}}
 ```
 
 ### Import into Postman

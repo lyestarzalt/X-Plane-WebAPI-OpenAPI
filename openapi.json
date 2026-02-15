@@ -136,10 +136,10 @@
                 "example": {
                   "data": [
                     {
-                      "id": 40003062912,
-                      "is_writable": false,
-                      "name": "sim/flightmodel/position/latitude",
-                      "value_type": "double"
+                      "id": 40003647712,
+                      "is_writable": true,
+                      "name": "sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot",
+                      "value_type": "float"
                     }
                   ]
                 }
@@ -279,7 +279,7 @@
                 "examples": {
                   "scalar": {
                     "summary": "Scalar value (float/double/int)",
-                    "value": { "data": 36.703 }
+                    "value": { "data": 29.92 }
                   },
                   "array": {
                     "summary": "Array value (float_array/int_array)",
@@ -382,7 +382,7 @@
               "examples": {
                 "scalar": {
                   "summary": "Set a scalar value",
-                  "value": { "data": 210 }
+                  "value": { "data": 29.92 }
                 },
                 "array": {
                   "summary": "Set an entire array",
@@ -972,18 +972,18 @@
             "type": "integer",
             "format": "int64",
             "description": "Numeric identifier of the dataref for the current simulator session",
-            "example": 40003062912
+            "example": 40003647712
           },
           "name": {
             "type": "string",
             "description": "Fully qualified name of the dataref",
-            "example": "sim/flightmodel/position/latitude"
+            "example": "sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot"
           },
           "value_type": {
             "type": "string",
             "description": "The data type of the dataref value",
             "enum": ["float", "double", "int", "int_array", "float_array", "data"],
-            "example": "double"
+            "example": "float"
           },
           "is_writable": {
             "type": "boolean",
