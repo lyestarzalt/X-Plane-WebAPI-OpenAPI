@@ -109,7 +109,7 @@
           {
             "name": "fields",
             "in": "query",
-            "description": "Comma-separated list of fields to return per record. Available fields: `id`, `name`, `value_type`, `is_writable`. Use `all` (default) to return all fields.",
+            "description": "Comma-separated list of fields to return per record. Available fields: `id`, `name`, `value_type`. Use `all` (default) to return all fields. Note: `is_writable` is always included automatically when present but cannot be used as a field selector.",
             "schema": {
               "type": "string",
               "default": "all"
@@ -394,7 +394,16 @@
         },
         "responses": {
           "200": {
-            "description": "Value set successfully (empty response)"
+            "description": "Value set successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "description": "Returns null on success"
+                },
+                "example": null
+              }
+            }
           },
           "400": {
             "description": "Bad request",
@@ -667,7 +676,16 @@
         },
         "responses": {
           "200": {
-            "description": "Command activated successfully (empty response)"
+            "description": "Command activated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "description": "Returns null on success"
+                },
+                "example": null
+              }
+            }
           },
           "400": {
             "description": "Bad request",
@@ -686,13 +704,13 @@
                   "duration_out_of_range": {
                     "value": {
                       "error_code": "duration_out_of_range",
-                      "error_message": "Duration is out of valid range."
+                      "error_message": "Duration is out of valid range"
                     }
                   },
                   "duration_missing": {
                     "value": {
                       "error_code": "duration_missing",
-                      "error_message": "Missing duration parameter"
+                      "error_message": "Duration parameter is missing"
                     }
                   }
                 }
@@ -784,7 +802,16 @@
         },
         "responses": {
           "200": {
-            "description": "Flight started successfully (empty response)"
+            "description": "Flight started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "description": "Returns null on success"
+                },
+                "example": null
+              }
+            }
           },
           "400": {
             "description": "Bad request",
@@ -865,7 +892,16 @@
         },
         "responses": {
           "200": {
-            "description": "Flight updated successfully (empty response)"
+            "description": "Flight updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "description": "Returns null on success"
+                },
+                "example": null
+              }
+            }
           },
           "400": {
             "description": "Bad request",
